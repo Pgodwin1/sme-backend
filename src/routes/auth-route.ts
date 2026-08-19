@@ -1,12 +1,9 @@
 import { Router } from "express";
+import { UserController } from "../controllers/user-controller";
 
 const router = Router();
 
-router.get("/", (_, res) => {
-  res.json({
-    success: true,
-    message: "Express + TypeScript is running 🚀",
-  });
-});
+router.post("/register", UserController.createUser);
+router.post("/login", UserController.login);
 
 export default router;
