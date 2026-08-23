@@ -15,3 +15,22 @@ export const generateOTP = (): string => {
   const otp = crypto.randomInt(100000, 1000000);
   return otp.toString();
 };
+
+export const generateResetToken = (email: string): string => {
+  return jwt.sign({ email, purpose: "password_reset" }, env.jwtSecret, {
+    expiresIn: "15m",
+  });
+};
+
+export const verifyResetToken = (token: string): { email: string } | null => {
+  try {
+    const decoded = jwt.verify(token, env.jwtSecret) as {
+      email: string;
+      purpose: string;
+    };
+    if (decoded.purpose !== "password_reset") return null;
+    return { email: decoded.email };
+  } catch {
+    return null;
+  }
+};

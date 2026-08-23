@@ -59,6 +59,17 @@ class EmailService {
 	`;
     await this.sendMail({ to, subject, html });
   }
+
+  async sendOTPEmail(to: string, fullName: string, otp: string) {
+    const subject = "Your Password Reset Code";
+    const html = `
+	  <h1>Hi, ${fullName}</h1>
+	  <p>Your password reset code is:</p>
+	  <h2>${otp}</h2>
+	  <p>This code expires in 10 minutes. If you didn't request this, you can ignore this email.</p>
+	`;
+    await this.sendMail({ to, subject, html });
+  }
 }
 
 export default new EmailService();

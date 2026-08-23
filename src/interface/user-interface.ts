@@ -15,6 +15,8 @@ export interface IUser {
   password: string;
   token?: string;
   otp?: string;
+  otpExpiresAt?: Date | null;
+  isOnboarded?: boolean;
 }
 
 export interface IUserDoc extends IUser, Document {}

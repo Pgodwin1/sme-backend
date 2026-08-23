@@ -49,6 +49,16 @@ const userSchema = new Schema<IUserDoc>(
       required: false,
       default: "",
     },
+    otpExpiresAt: {
+      type: Date,
+      required: false,
+      default: null,
+    },
+    isOnboarded: {
+      type: Boolean,
+      required: false,
+      default: false,
+    },
   },
   {
     timestamps: true,

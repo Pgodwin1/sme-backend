@@ -1,8 +1,21 @@
 import { Request, Response } from "express";
 import userService from "../services/user-service";
 import bcrypt from "bcrypt";
-import { generateAccessToken, generateOTP } from "../utils/helperFunctions";
+import {
+  generateAccessToken,
+  generateOTP,
+  generateResetToken,
+  verifyResetToken,
+} from "../utils/helperFunctions";
 import emailService from "../services/email-service";
+import { IUserDoc } from "../interface/user-interface";
+
+const OTP_TTL_MS = 10 * 60 * 1000; // 10 minutes
+
+const sanitizeUser = (user: IUserDoc) => {
+  const { password, otp, otpExpiresAt, ...safeUser } = user.toObject();
+  return safeUser;
+};
 
 export const UserController = {
   createUser: async (req: Request, res: Response) => {
@@ -42,7 +55,7 @@ export const UserController = {
 
       await emailService.sendWelcomeEmail(user.email, user.fullName);
 
-      res.status(201).json({ success: true, data: updatedUser });
+      res.status(201).json({ success: true, data: sanitizeUser(updatedUser) });
     } catch (error: any) {
       res.status(500).json({ success: false, message: error.message });
     }
@@ -75,7 +88,7 @@ export const UserController = {
       user.token = token;
       const updatedUser = await user.save();
 
-      res.status(200).json({ success: true, data: updatedUser });
+      res.status(200).json({ success: true, data: sanitizeUser(updatedUser) });
     } catch (error: any) {
       res.status(500).json({ success: false, message: error.message });
     }
@@ -84,6 +97,11 @@ export const UserController = {
   forgotPassword: async (req: Request, res: Response) => {
     try {
       const { email } = req.body;
+      if (!email) {
+        return res
+          .status(400)
+          .json({ success: false, message: "Email is required." });
+      }
 
       const user = await userService.getUserByEmail(email);
       if (!user) {
@@ -93,14 +111,13 @@ export const UserController = {
       }
 
       const otp = generateOTP();
-      await userService.updateUserOtpOrToken(email, otp);
-      // TODO: Uncomment the line below to send the OTP email when email service is set up
-      // await emailService.sendOTPEmail(user.email, user.fullName, otp);
+      const otpExpiresAt = new Date(Date.now() + OTP_TTL_MS);
+      await userService.setOtp(email, otp, otpExpiresAt);
+      await emailService.sendOTPEmail(user.email, user.fullName, otp);
 
       res.status(200).json({
         success: true,
         message: "Password reset instructions sent to your email.",
-        otp: otp, // Include the generated OTP in the response (for demonstration purposes only)
       });
     } catch (error: any) {
       res.status(500).json({ success: false, message: error.message });
@@ -110,23 +127,27 @@ export const UserController = {
   verifyPasswordOtp: async (req: Request, res: Response) => {
     try {
       const { otp, email } = req.body;
-      const isOtpVerified = await userService.verifyOtp(email, otp);
-
-      if (isOtpVerified) {
-        const token = generateAccessToken("2rtgdf546g", email, "temp");
-
-        await userService.updateUserOtpOrToken(email, "", token);
-
-        return res.status(200).json({
-          success: true,
-          message: "Otp verified successfully.",
-          token,
-        });
+      if (!otp || !email) {
+        return res
+          .status(400)
+          .json({ success: false, message: "Email and otp are required." });
       }
 
-      res
-        .status(400)
-        .json({ success: false, message: "Invalid or expired otp" });
+      const isOtpVerified = await userService.verifyOtp(email, otp);
+      if (!isOtpVerified) {
+        return res
+          .status(400)
+          .json({ success: false, message: "Invalid or expired otp." });
+      }
+
+      await userService.clearOtp(email);
+      const resetToken = generateResetToken(email);
+
+      res.status(200).json({
+        success: true,
+        message: "Otp verified successfully.",
+        resetToken,
+      });
     } catch (error: any) {
       res.status(500).json({ success: false, message: "Failed to verify otp" });
     }
@@ -134,25 +155,80 @@ export const UserController = {
 
   resetPassword: async (req: Request, res: Response) => {
     try {
-      const { email, otp, newPassword } = req.body;
+      const { resetToken, newPassword } = req.body;
+      if (!resetToken || !newPassword) {
+        return res.status(400).json({
+          success: false,
+          message: "Reset token and new password are required.",
+        });
+      }
 
-      const isOtpValid = await userService.verifyOtp(email, otp);
-      if (!isOtpValid) {
+      const decoded = verifyResetToken(resetToken);
+      if (!decoded) {
         return res
           .status(400)
-          .json({ success: false, message: "Invalid OTP." });
+          .json({ success: false, message: "Invalid or expired reset token." });
       }
 
-      const hashedPassword = await bcrypt.hash(newPassword, 10);
-      const updatedUser = await userService.updateUserOtpOrToken(email, "", "");
-      if (updatedUser) {
-        updatedUser.password = hashedPassword;
-        await updatedUser.save();
+      const user = await userService.getUserByEmail(decoded.email);
+      if (!user) {
+        return res
+          .status(400)
+          .json({ success: false, message: "User not found." });
       }
+
+      user.password = await bcrypt.hash(newPassword, 10);
+      user.token = "";
+      await user.save();
 
       res
         .status(200)
         .json({ success: true, message: "Password reset successful." });
+    } catch (error: any) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  },
+
+  getMe: async (req: Request, res: Response) => {
+    try {
+      const user = await userService.getUserById(req.user!.id);
+      if (!user) {
+        return res
+          .status(404)
+          .json({ success: false, message: "User not found." });
+      }
+
+      res.status(200).json({ success: true, data: sanitizeUser(user) });
+    } catch (error: any) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  },
+
+  completeOnboarding: async (req: Request, res: Response) => {
+    try {
+      const { businessName, industry, size, role } = req.body;
+
+      if (!businessName && !industry && !size && !role) {
+        return res.status(400).json({
+          success: false,
+          message: "At least one onboarding field is required.",
+        });
+      }
+
+      const updatedUser = await userService.completeOnboarding(req.user!.id, {
+        businessName,
+        industry,
+        size,
+        role,
+      });
+
+      if (!updatedUser) {
+        return res
+          .status(404)
+          .json({ success: false, message: "User not found." });
+      }
+
+      res.status(200).json({ success: true, data: sanitizeUser(updatedUser) });
     } catch (error: any) {
       res.status(500).json({ success: false, message: error.message });
     }
