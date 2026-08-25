@@ -1,7 +1,19 @@
+import path from "path";
 import swaggerJsdoc from "swagger-jsdoc";
 import { env } from "./env";
 
-const options: swaggerJsdoc.Options = {
+const servers: swaggerJsdoc.Server[] = [
+  { url: `http://localhost:${env.port}`, description: "Local server" },
+];
+
+if (process.env.VERCEL_URL) {
+  servers.unshift({
+    url: `https://${process.env.VERCEL_URL}`,
+    description: "Deployed server",
+  });
+}
+
+const options: swaggerJsdoc.OAS3Options = {
   definition: {
     openapi: "3.0.3",
     info: {
@@ -9,12 +21,7 @@ const options: swaggerJsdoc.Options = {
       version: "1.0.0",
       description: "API documentation for the SME backend service.",
     },
-    servers: [
-      {
-        url: `http://localhost:${env.port}`,
-        description: "Local server",
-      },
-    ],
+    servers,
     components: {
       securitySchemes: {
         bearerAuth: {
@@ -49,7 +56,10 @@ const options: swaggerJsdoc.Options = {
       },
     },
   },
-  apis: ["./src/docs/*.ts", "./dist/docs/*.js"],
+  apis: [
+    path.join(__dirname, "../routes/*.ts"),
+    path.join(__dirname, "../routes/*.js"),
+  ],
 };
 
 export const swaggerSpec = swaggerJsdoc(options);
