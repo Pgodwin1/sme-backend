@@ -49,6 +49,13 @@ const router = Router();
  *               role:
  *                 type: string
  *                 enum: [admin, user]
+ *               modules:
+ *                 type: array
+ *                 description: Modules to switch on for this business.
+ *                 items:
+ *                   type: string
+ *                   enum: [hr, payroll, crm, sales, inventory, accounting, procurement, approvals, reports]
+ *                 example: [hr, payroll, crm]
  *     responses:
  *       201:
  *         description: User created successfully
@@ -58,9 +65,9 @@ const router = Router();
  *               type: object
  *               properties:
  *                 success: { type: boolean, example: true }
- *                 data: { $ref: '#/components/schemas/User' }
+ *                 data: { $ref: '#/components/schemas/UserWithModules' }
  *       400:
- *         description: Email already exists
+ *         description: Email already exists, or an invalid module was supplied
  *         content:
  *           application/json:
  *             schema:
@@ -105,7 +112,7 @@ router.post("/register", UserController.createUser);
  *               type: object
  *               properties:
  *                 success: { type: boolean, example: true }
- *                 data: { $ref: '#/components/schemas/User' }
+ *                 data: { $ref: '#/components/schemas/UserWithModules' }
  *       400:
  *         description: Invalid email or password
  *         content:
@@ -275,7 +282,7 @@ router.post("/reset-password", UserController.resetPassword);
  *               type: object
  *               properties:
  *                 success: { type: boolean, example: true }
- *                 data: { $ref: '#/components/schemas/User' }
+ *                 data: { $ref: '#/components/schemas/UserWithModules' }
  *       401:
  *         description: Missing, invalid, or expired token
  *         content:
