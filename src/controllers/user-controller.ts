@@ -8,7 +8,9 @@ import {
   verifyResetToken,
 } from "../utils/helperFunctions";
 import emailService from "../services/email-service";
+import moduleService from "../services/module-service";
 import { IUserDoc } from "../interface/user-interface";
+import { ModuleKey } from "../interface/module-interface";
 
 const OTP_TTL_MS = 10 * 60 * 1000; // 10 minutes
 
@@ -20,8 +22,19 @@ const sanitizeUser = (user: IUserDoc) => {
 export const UserController = {
   createUser: async (req: Request, res: Response) => {
     try {
-      const { fullName, email, password, businessName, industry, size, role } =
+      const { fullName, email, password, businessName, industry, size, role, modules } =
         req.body;
+
+      const requestedModules: ModuleKey[] = Array.isArray(modules) ? modules : [];
+      const invalidModules = requestedModules.filter(
+        (m) => !Object.values(ModuleKey).includes(m),
+      );
+      if (invalidModules.length > 0) {
+        return res.status(400).json({
+          success: false,
+          message: `Invalid module(s): ${invalidModules.join(", ")}.`,
+        });
+      }
 
       const userData = {
         fullName,
@@ -53,9 +66,14 @@ export const UserController = {
       user.token = token;
       const updatedUser = await user.save();
 
-      await emailService.sendWelcomeEmail(user.email, user.fullName);
+      const userModules = await moduleService.createForUser(user._id, requestedModules);
 
-      res.status(201).json({ success: true, data: sanitizeUser(updatedUser) });
+      // await emailService.sendWelcomeEmail(user.email, user.fullName);
+
+      res.status(201).json({
+        success: true,
+        data: { ...sanitizeUser(updatedUser), modules: userModules.modules },
+      });
     } catch (error: any) {
       res.status(500).json({ success: false, message: error.message });
     }
@@ -88,7 +106,12 @@ export const UserController = {
       user.token = token;
       const updatedUser = await user.save();
 
-      res.status(200).json({ success: true, data: sanitizeUser(updatedUser) });
+      const userModules = await moduleService.getByUser(user._id);
+
+      res.status(200).json({
+        success: true,
+        data: { ...sanitizeUser(updatedUser), modules: userModules?.modules ?? [] },
+      });
     } catch (error: any) {
       res.status(500).json({ success: false, message: error.message });
     }
@@ -198,7 +221,12 @@ export const UserController = {
           .json({ success: false, message: "User not found." });
       }
 
-      res.status(200).json({ success: true, data: sanitizeUser(user) });
+      const userModules = await moduleService.getByUser(user._id);
+
+      res.status(200).json({
+        success: true,
+        data: { ...sanitizeUser(user), modules: userModules?.modules ?? [] },
+      });
     } catch (error: any) {
       res.status(500).json({ success: false, message: error.message });
     }

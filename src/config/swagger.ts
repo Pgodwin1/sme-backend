@@ -46,6 +46,47 @@ const options: swaggerJsdoc.OAS3Options = {
             updatedAt: { type: "string", format: "date-time" },
           },
         },
+        UserWithModules: {
+          allOf: [
+            { $ref: "#/components/schemas/User" },
+            {
+              type: "object",
+              properties: {
+                modules: {
+                  type: "array",
+                  items: {
+                    type: "string",
+                    enum: ["hr", "payroll", "crm", "sales", "inventory", "accounting", "procurement", "approvals", "reports"],
+                  },
+                  example: ["hr", "payroll", "crm"],
+                },
+              },
+            },
+          ],
+        },
+        Module: {
+          type: "object",
+          properties: {
+            key: {
+              type: "string",
+              enum: ["hr", "payroll", "crm", "sales", "inventory", "accounting", "procurement", "approvals", "reports"],
+              example: "hr",
+            },
+            code: { type: "string", example: "M1" },
+            name: { type: "string", example: "HR" },
+            description: {
+              type: "string",
+              example: "Employee records, attendance, leave and reviews in one place.",
+            },
+            features: {
+              type: "array",
+              items: { type: "string" },
+              example: ["Employee records", "Attendance", "Leave management"],
+            },
+            defaultOn: { type: "boolean", example: true },
+            inMvp: { type: "boolean", example: true },
+          },
+        },
         ErrorResponse: {
           type: "object",
           properties: {
