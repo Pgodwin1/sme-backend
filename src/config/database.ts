@@ -13,7 +13,7 @@ export function connectDatabase(): Promise<typeof mongoose> {
   }
 
   if (!connectionPromise) {
-    connectionPromise = mongoose.connect(env.MONGODB_URI).catch((error) => {
+    connectionPromise = mongoose.connect(env.mongoUri).catch((error) => {
       connectionPromise = null;
       throw error;
     });
