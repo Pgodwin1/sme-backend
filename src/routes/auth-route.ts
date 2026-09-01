@@ -155,6 +155,7 @@ router.post("/login", UserController.login);
  *               type: object
  *               properties:
  *                 success: { type: boolean, example: true }
+ *                 otp: { type: string, example: "482913" }
  *                 message: { type: string, example: "Password reset instructions sent to your email." }
  *       400:
  *         description: Email missing or not found

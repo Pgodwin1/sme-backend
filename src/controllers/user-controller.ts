@@ -136,10 +136,11 @@ export const UserController = {
       const otp = generateOTP();
       const otpExpiresAt = new Date(Date.now() + OTP_TTL_MS);
       await userService.setOtp(email, otp, otpExpiresAt);
-      await emailService.sendOTPEmail(user.email, user.fullName, otp);
+      // await emailService.sendOTPEmail(user.email, user.fullName, otp);
 
       res.status(200).json({
         success: true,
+        otp,
         message: "Password reset instructions sent to your email.",
       });
     } catch (error: any) {
