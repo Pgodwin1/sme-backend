@@ -5,6 +5,7 @@ import swaggerUi from "swagger-ui-express";
 import authRouter from "./routes/auth-route";
 import moduleRouter from "./routes/module-route";
 import { swaggerSpec } from "./config/swagger";
+import { connectDatabase } from "./config/database";
 
 const app = express();
 
@@ -23,6 +24,19 @@ app.use(
 app.use(helmet());
 app.use(cors());
 app.use(express.json());
+
+// Routes below need the DB — connect (or reuse the cached connection) before
+// they run. This is what actually establishes the connection on Vercel,
+// since server.ts's app.listen() bootstrap never runs there.
+app.use(async (_req, res, next) => {
+  try {
+    await connectDatabase();
+    next();
+  } catch (error) {
+    res.status(503).json({ success: false, message: "Database connection failed." });
+  }
+});
+
 app.use(authRouter);
 app.use(moduleRouter);
 
