@@ -4,6 +4,7 @@ import helmet from "helmet";
 import swaggerUi from "swagger-ui-express";
 import authRouter from "./routes/auth-route";
 import moduleRouter from "./routes/module-route";
+import inventoryRouter from "./routes/inventry-route";
 import { swaggerSpec } from "./config/swagger";
 import { connectDatabase } from "./config/database";
 
@@ -39,11 +40,21 @@ app.use(async (_req, res, next) => {
 
 app.use(authRouter);
 app.use(moduleRouter);
+app.use(inventoryRouter);
 
 app.get("/", (_, res) => {
   res.status(200).json({
     success: true,
     message: "API is running 🚀",
+  });
+});
+
+// Catches errors passed via next(err) — e.g. multer's fileFilter rejection —
+// so they come back as JSON instead of Express's default HTML error page.
+app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  res.status(err.status || 400).json({
+    success: false,
+    message: err.message || "Something went wrong.",
   });
 });
 
