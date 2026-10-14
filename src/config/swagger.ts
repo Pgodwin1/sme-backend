@@ -87,6 +87,34 @@ const options: swaggerJsdoc.OAS3Options = {
             inMvp: { type: "boolean", example: true },
           },
         },
+        Sale: {
+          type: "object",
+          properties: {
+            _id: { type: "string", example: "670f1c2e5b3c2a0012a4e5f2" },
+            receiptNumber: { type: "string", example: "SALE-1716830400000" },
+            customerName: { type: "string", example: "Danladi Pharmacy" },
+            customerPhone: { type: "string", example: "+2348012345678" },
+            items: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  inventoryItem: { type: "string", example: "670f1c2e5b3c2a0012a4e5f1" },
+                  name: { type: "string", example: "Vegetable Oil 5L" },
+                  unitPrice: { type: "number", example: 4500 },
+                  quantity: { type: "number", example: 2 },
+                  subtotal: { type: "number", example: 9000 },
+                },
+              },
+            },
+            totalAmount: { type: "number", example: 9000 },
+            paymentStatus: { type: "string", enum: ["Paid", "Partial", "Unpaid"], example: "Paid" },
+            amountPaid: { type: "number", example: 9000 },
+            balanceDue: { type: "number", example: 0 },
+            createdAt: { type: "string", format: "date-time" },
+            updatedAt: { type: "string", format: "date-time" },
+          },
+        },
         ErrorResponse: {
           type: "object",
           properties: {
