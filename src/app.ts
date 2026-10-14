@@ -5,6 +5,7 @@ import swaggerUi from "swagger-ui-express";
 import authRouter from "./routes/auth-route";
 import moduleRouter from "./routes/module-route";
 import inventoryRouter from "./routes/inventry-route";
+import saleRouter from "./routes/sale-route";
 import { swaggerSpec } from "./config/swagger";
 import { connectDatabase } from "./config/database";
 
@@ -41,6 +42,7 @@ app.use(async (_req, res, next) => {
 app.use(authRouter);
 app.use(moduleRouter);
 app.use(inventoryRouter);
+app.use(saleRouter);
 
 app.get("/", (_, res) => {
   res.status(200).json({

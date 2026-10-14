@@ -11,7 +11,9 @@ export interface IInventory {
   items: IInventoryItem[];
 }
 
-export interface IInventoryDoc extends IInventory, Document {}
+export interface IInventoryDoc extends Omit<IInventory, "items">, Document {
+  items: Types.DocumentArray<IInventoryItem>;
+}
 
 export interface IInventoryItem {
   name: string;

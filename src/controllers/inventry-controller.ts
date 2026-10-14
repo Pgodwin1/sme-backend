@@ -68,7 +68,7 @@ export const InventoryController = {
         status,
       } = req.body;
 
-      const requiredFields = ["name", "quantity", "price", "category", "location", "supplier"];
+      const requiredFields = ["name", "quantity", "price", "category"];
       const missing = requiredFields.filter(
         (field) => req.body[field] === undefined || req.body[field] === null || req.body[field] === "",
       );
